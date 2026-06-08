@@ -60,4 +60,7 @@ class Config:
         'vitecfastighet.se',
         'maklarobjekt.se',
         'quedro.com',
+        'cdn-realestate.kowboy.se',
+        'bosthlm.se',
+        'media.husmanhagberg.se',
     ]

@@ -14,10 +14,14 @@ from .base import BaseScraper
 logger = logging.getLogger(__name__)
 
 BASE = 'https://www.maklarhuset.se'
-SEARCH_URL = (
+_BASE_SEARCH = (
     f'{BASE}/bostad/sverige/stockholms-lan/stockholm-kommun/sodermalm'
     '?page=0&view=list&sortby=datepublished-desc'
 )
+SEARCH_URLS = [
+    _BASE_SEARCH,
+    _BASE_SEARCH + '&status=coming',
+]
 
 
 class Maklarhuset(BaseScraper):
@@ -25,23 +29,21 @@ class Maklarhuset(BaseScraper):
     broker_slug = 'maklarhuset'
 
     def scrape(self):
-        resp = self.get(SEARCH_URL)
-        if not resp:
-            return []
-
-        soup = self.soup(resp.text)
         results = []
         seen = set()
-
-        for obj in soup.find_all('div', class_='mh-object'):
-            try:
-                data = self._parse_card(obj)
-                if data and data['external_id'] not in seen:
-                    seen.add(data['external_id'])
-                    results.append(data)
-            except Exception as e:
-                logger.debug(f'[{self.broker_name}] parse error: {e}')
-
+        for url in SEARCH_URLS:
+            resp = self.get(url)
+            if not resp:
+                continue
+            soup = self.soup(resp.text)
+            for obj in soup.find_all('div', class_='mh-object'):
+                try:
+                    data = self._parse_card(obj)
+                    if data and data['external_id'] not in seen:
+                        seen.add(data['external_id'])
+                        results.append(data)
+                except Exception as e:
+                    logger.debug(f'[{self.broker_name}] parse error: {e}')
         return results
 
     def _parse_card(self, obj):
@@ -71,6 +73,13 @@ class Maklarhuset(BaseScraper):
             img = obj.find('img')
             if img:
                 address = img.get('alt', '').split(',')[0].strip()
+
+        if not address:
+            # Try to extract street name from URL slug
+            # e.g. /bostad/.../fatburs-kvarngata/555093 → Fatburs Kvarngata
+            url_parts = href.rstrip('/').split('/')
+            if len(url_parts) >= 2 and not url_parts[-2].isdigit():
+                address = url_parts[-2].replace('-', ' ').title()
 
         if not address:
             return None
