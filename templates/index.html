@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bostad Tracker — Mariatorget · Mariaberget · Mosebacke</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-title">
+        <span class="header-icon">🏠</span>
+        <div>
+          <h1>Bostad Tracker</h1>
+          <p class="header-sub">Mariatorget · Mariaberget · Mosebacke</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span class="status-badge" id="status-count">–</span>
+        <button class="btn btn-secondary" id="btn-scrape" title="Uppdatera nu">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          Uppdatera
+        </button>
+        <span class="last-updated" id="last-updated">–</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="filter-bar">
+    <div class="filter-bar-inner">
+      <div class="filter-row">
+        <div class="filter-group">
+          <label>Min pris</label>
+          <input type="number" id="f-price-min" placeholder="0" step="100000" min="0">
+          <span class="filter-unit">kr</span>
+        </div>
+        <div class="filter-group">
+          <label>Max pris</label>
+          <input type="number" id="f-price-max" placeholder="15 000 000" step="100000" min="0">
+          <span class="filter-unit">kr</span>
+        </div>
+        <div class="filter-group">
+          <label>Min storlek</label>
+          <input type="number" id="f-size-min" placeholder="0" step="5" min="0">
+          <span class="filter-unit">kvm</span>
+        </div>
+        <div class="filter-group">
+          <label>Max storlek</label>
+          <input type="number" id="f-size-max" placeholder="200" step="5" min="0">
+          <span class="filter-unit">kvm</span>
+        </div>
+        <div class="filter-group">
+          <label>Min rum</label>
+          <select id="f-rooms">
+            <option value="">Alla</option>
+            <option value="1">1+</option>
+            <option value="1.5">1,5+</option>
+            <option value="2">2+</option>
+            <option value="2.5">2,5+</option>
+            <option value="3">3+</option>
+            <option value="4">4+</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Status</label>
+          <select id="f-status">
+            <option value="">Alla</option>
+            <option value="active">Till salu</option>
+            <option value="upcoming">Kommande</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Mäklare</label>
+          <select id="f-broker">
+            <option value="">Alla</option>
+            {% for broker in brokers %}
+            <option value="{{ broker }}">{{ broker }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Sortera</label>
+          <select id="f-sort">
+            <option value="newest">Nyast</option>
+            <option value="price_asc">Pris ↑</option>
+            <option value="price_desc">Pris ↓</option>
+            <option value="size_asc">Storlek ↑</option>
+            <option value="size_desc">Storlek ↓</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" id="btn-filter">Filtrera</button>
+        <button class="btn btn-ghost" id="btn-reset">Återställ</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="main-content">
+    <div id="listings-meta" class="listings-meta hidden">
+      <span id="result-count"></span>
+      <div id="new-alert" class="new-alert hidden">
+        <span class="dot-pulse"></span>
+        <span id="new-count-text"></span>
+      </div>
+    </div>
+
+    <div id="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Hämtar objekt…</p>
+    </div>
+
+    <div id="empty-state" class="empty-state hidden">
+      <p>Inga objekt hittades med dessa filter.</p>
+    </div>
+
+    <div id="listings-grid" class="listings-grid"></div>
+  </main>
+
+  <template id="card-template">
+    <article class="listing-card" data-id="">
+      <div class="card-badges">
+        <span class="badge badge-new hidden">NY</span>
+        <span class="badge badge-upcoming hidden">KOMMANDE</span>
+      </div>
+      <a class="card-image-link" href="" target="_blank" rel="noopener">
+        <div class="card-image-wrap">
+          <img class="card-image" src="" alt="" loading="lazy">
+          <div class="card-image-fallback">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><path d="m3 9 4-4 4 4 4-4 4 4"/>
+              <path d="M3 15h18"/>
+            </svg>
+          </div>
+        </div>
+      </a>
+      <div class="card-body">
+        <div class="card-broker"></div>
+        <a class="card-address" href="" target="_blank" rel="noopener"></a>
+        <div class="card-area"></div>
+        <div class="card-stats">
+          <span class="card-price"></span>
+          <span class="card-divider">·</span>
+          <span class="card-rooms"></span>
+          <span class="card-divider">·</span>
+          <span class="card-size"></span>
+        </div>
+        <div class="card-fee"></div>
+        <div class="card-floor"></div>
+        <div class="card-since"></div>
+      </div>
+    </article>
+  </template>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
