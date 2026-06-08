@@ -74,6 +74,7 @@ function renderMap(listings) {
     const priceStr = l.price ? formatPrice(l.price) + ' kr' : 'Pris ej angivet';
     const roomsStr = l.rooms != null ? formatRooms(l.rooms) + ' rok · ' : '';
     const sizeStr  = l.size  != null ? l.size + ' kvm' : '';
+    const dateStr  = listingDate(l);
 
     const popup = L.popup({ maxWidth: 260, className: 'map-popup' }).setContent(`
       <div class="map-popup-inner">
@@ -87,7 +88,7 @@ function renderMap(listings) {
           <div class="map-popup-area">${l.area || ''}</div>
           <div class="map-popup-price">${priceStr}</div>
           <div class="map-popup-details">${roomsStr}${sizeStr}</div>
-          <div class="map-popup-broker">${l.broker || ''}</div>
+          <div class="map-popup-broker">${l.broker || ''}${dateStr ? ' · ' + dateStr : ''}</div>
         </div>
       </div>
     `);
@@ -233,7 +234,8 @@ function populateCard(card, l) {
   floorEl.textContent = l.floor ? 'Våning: ' + l.floor : '';
 
   const sinceEl = card.querySelector('.card-since');
-  sinceEl.textContent = l.first_seen ? 'Sedd: ' + formatDate(l.first_seen) : '';
+  const dateLbl = listingDate(l);
+  sinceEl.textContent = dateLbl ? 'Ute sedan: ' + dateLbl : '';
 }
 
 // ── Filters ───────────────────────────────────────────────────────────
@@ -329,6 +331,12 @@ function formatPrice(n) {
 function formatRooms(n) {
   return n % 1 === 0 ? n.toString() : n.toFixed(1).replace('.', ',');
 }
+function listingDate(l) {
+  // Use the broker's actual publish date if available, else our first_seen
+  const iso = l.published_at || l.first_seen;
+  return iso ? formatDate(iso) : '';
+}
+
 function formatDate(iso) {
   const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
   const now = new Date();

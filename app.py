@@ -25,6 +25,8 @@ def _migrate_add_geocols(db):
                 conn.execute(text('ALTER TABLE listings ADD COLUMN lat FLOAT'))
             if 'lng' not in cols:
                 conn.execute(text('ALTER TABLE listings ADD COLUMN lng FLOAT'))
+            if 'published_at' not in cols:
+                conn.execute(text('ALTER TABLE listings ADD COLUMN published_at TIMESTAMP'))
             conn.commit()
     except Exception:
         pass
@@ -87,6 +89,11 @@ def create_app():
             q = q.order_by(Listing.size.asc().nulls_last())
         elif sort == 'size_desc':
             q = q.order_by(Listing.size.desc().nulls_last())
+        elif sort == 'published_desc':
+            q = q.order_by(
+                Listing.published_at.desc().nulls_last(),
+                Listing.first_seen.desc(),
+            )
         else:
             q = q.order_by(Listing.first_seen.desc())
 

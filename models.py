@@ -23,6 +23,7 @@ class Listing(db.Model):
     status = db.Column(db.String(50), default='active', index=True)
     lat = db.Column(db.Float)
     lng = db.Column(db.Float)
+    published_at = db.Column(db.DateTime, nullable=True)
     first_seen = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     last_seen = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     active = db.Column(db.Boolean, default=True, index=True)
@@ -52,6 +53,7 @@ class Listing(db.Model):
             'status': self.status,
             'lat': self.lat,
             'lng': self.lng,
+            'published_at': self.published_at.isoformat() if self.published_at else None,
             'is_new': self.is_new(new_hours),
             'first_seen': self.first_seen.isoformat() if self.first_seen else None,
             'last_seen': self.last_seen.isoformat() if self.last_seen else None,

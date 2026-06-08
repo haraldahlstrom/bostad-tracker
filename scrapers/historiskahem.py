@@ -10,6 +10,7 @@ Structure:
 """
 import re
 import logging
+from datetime import datetime, timezone
 from urllib.parse import urljoin
 
 from .base import BaseScraper
@@ -94,6 +95,16 @@ class Historiskahem(BaseScraper):
         obj_match = re.search(r'(OBJ[A-Z0-9]+)', href.upper())
         ext_id = obj_match.group(1).lower() if obj_match else href.rstrip('/').split('/')[-1]
 
+        # Publication date from data-publish attribute (format: YYYY-MM-DD or ISO)
+        published_at = None
+        date_raw = card.get('data-publish') or card.get('data-date') or ''
+        if date_raw:
+            try:
+                dt = datetime.fromisoformat(date_raw.strip())
+                published_at = dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
+            except Exception:
+                pass
+
         return {
             'external_id': self.make_external_id(ext_id),
             'broker': self.broker_name,
@@ -108,4 +119,5 @@ class Historiskahem(BaseScraper):
             'url': url,
             'image_url': image_url,
             'status': status,
+            'published_at': published_at,
         }

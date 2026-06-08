@@ -84,6 +84,7 @@ def save_listing(data):
             url=data.get('url', ''),
             image_url=data.get('image_url', ''),
             status=data.get('status', 'active'),
+            published_at=data.get('published_at'),
             active=True,
         )
         db.session.add(listing)

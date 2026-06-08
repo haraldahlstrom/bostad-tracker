@@ -9,6 +9,7 @@ Fields: fasad_id, address, district, rooms_text, area_text, price_text,
 import re
 import json
 import logging
+from datetime import datetime, timezone
 
 from .base import BaseScraper
 
@@ -81,6 +82,17 @@ class Bosthlm(BaseScraper):
 
         status = 'upcoming' if item.get('upcoming') else 'active'
 
+        # Publication date
+        published_at = None
+        date_raw = (item.get('publishedAt') or item.get('publishDate') or
+                    item.get('listDate') or item.get('created') or '')
+        if date_raw:
+            try:
+                dt = datetime.fromisoformat(str(date_raw).replace('Z', '+00:00'))
+                published_at = dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
+            except Exception:
+                pass
+
         return {
             'external_id': self.make_external_id(str(fasad_id)),
             'broker': self.broker_name,
@@ -95,4 +107,5 @@ class Bosthlm(BaseScraper):
             'url': url,
             'image_url': image_url,
             'status': status,
+            'published_at': published_at,
         }
