@@ -4,6 +4,7 @@ import threading
 from urllib.parse import urlparse, unquote
 
 import requests
+from sqlalchemy import inspect, text
 from flask import Flask, render_template, jsonify, request, Response, abort
 
 from config import Config
@@ -16,6 +17,19 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _migrate_add_geocols(db):
+    try:
+        cols = [c['name'] for c in inspect(db.engine).get_columns('listings')]
+        with db.engine.connect() as conn:
+            if 'lat' not in cols:
+                conn.execute(text('ALTER TABLE listings ADD COLUMN lat FLOAT'))
+            if 'lng' not in cols:
+                conn.execute(text('ALTER TABLE listings ADD COLUMN lng FLOAT'))
+            conn.commit()
+    except Exception:
+        pass
+
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -24,6 +38,7 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        _migrate_add_geocols(db)
 
     from scheduler import init_scheduler, run_all_scrapers
     init_scheduler(app)

@@ -368,6 +368,122 @@ a:hover { color: var(--accent-h); text-decoration: underline; }
 }
 .card-since { margin-top: 4px; }
 
+/* ── View Toggle ── */
+.view-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
+}
+.btn-view {
+  background: transparent;
+  color: var(--text-second);
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: 5px 8px;
+}
+.btn-view:hover { color: var(--text-primary); background: var(--bg-card-h); }
+.btn-view.active { background: var(--accent); color: #0d1117; }
+
+/* ── Map Container ── */
+.map-container {
+  width: 100%;
+  height: calc(100vh - 210px);
+  min-height: 500px;
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  position: relative;
+}
+#map { width: 100%; height: 100%; }
+.map-no-coords {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(13,17,23,.85);
+  color: var(--text-muted);
+  font-size: .75rem;
+  padding: 4px 12px;
+  border-radius: 20px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 1000;
+}
+
+/* ── Map Pin ── */
+.map-pin {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.7);
+  box-shadow: 0 1px 4px rgba(0,0,0,.5);
+  cursor: pointer;
+  transition: transform .1s;
+}
+.map-pin:hover { transform: scale(1.3); }
+
+/* ── Map Popup ── */
+.map-popup .leaflet-popup-content-wrapper {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  color: var(--text-primary);
+  padding: 0;
+  overflow: hidden;
+}
+.map-popup .leaflet-popup-tip {
+  background: var(--bg-card);
+}
+.map-popup .leaflet-popup-content {
+  margin: 0;
+  width: 240px !important;
+}
+.map-popup-inner {
+  display: flex;
+  flex-direction: column;
+}
+.map-popup-inner img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+}
+.map-popup-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.map-popup-badges { display: flex; gap: 4px; margin-bottom: 2px; }
+.map-popup-addr {
+  font-weight: 600;
+  font-size: .9rem;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+.map-popup-addr:hover { color: var(--accent-h); }
+.map-popup-area { font-size: .78rem; color: var(--text-second); }
+.map-popup-price {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 2px;
+}
+.map-popup-details { font-size: .8rem; color: var(--text-second); }
+.map-popup-broker {
+  font-size: .7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  margin-top: 2px;
+}
+.map-popup .leaflet-popup-close-button { color: var(--text-second) !important; }
+.map-popup .leaflet-popup-close-button:hover { color: var(--text-primary) !important; }
+
 /* ── Utilities ── */
 .hidden { display: none !important; }
 

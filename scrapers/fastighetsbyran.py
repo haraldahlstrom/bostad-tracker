@@ -86,8 +86,14 @@ class Fastighetsbyran(BaseScraper):
                 elif 'kvm' in text.lower() and size is None:
                     size = self.normalize_size(text)
 
-        # Image: inside react carousel (empty in SSR, no image available)
+        # Image: try any img tag inside the card (Next.js SSR sometimes includes them)
         image_url = ''
+        for img_tag in item.find_all('img'):
+            src = (img_tag.get('src') or img_tag.get('data-src')
+                   or img_tag.get('data-lazy-src') or '')
+            if src and src.startswith('http') and not src.endswith('.svg'):
+                image_url = src
+                break
 
         # Status
         full_text = item.get_text().lower()

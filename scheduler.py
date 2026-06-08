@@ -49,6 +49,9 @@ def run_all_scrapers(app):
 
         logger.info(f'Scrape done: {total_found} found, {total_new} new, {len(stale)} deactivated')
 
+        # Geocode any listings that are missing coordinates
+        _geocode_pending(app)
+
 
 def save_listing(data):
     """Upsert a listing. Returns (was_saved, is_new)."""
@@ -87,6 +90,32 @@ def save_listing(data):
         db.session.commit()
         logger.info(f'New listing: {listing.address} — {listing.broker} [{listing.status}]')
         return True, True
+
+
+def _geocode_pending(app):
+    """Geocode any active listings that are missing lat/lng."""
+    from geocoder import geocode
+    with app.app_context():
+        pending = Listing.query.filter(
+            Listing.active == True,
+            Listing.lat == None,
+            Listing.address != None,
+            Listing.address != '',
+        ).all()
+        if not pending:
+            return
+        logger.info(f'Geocoding {len(pending)} listings…')
+        for listing in pending:
+            result = geocode(listing.address)
+            if result:
+                listing.lat, listing.lng = result
+                logger.debug(f'Geocoded: {listing.address} → {result}')
+            else:
+                # Set a dummy value so we don't retry forever
+                listing.lat = 0.0
+                listing.lng = 0.0
+        db.session.commit()
+        logger.info('Geocoding complete')
 
 
 def init_scheduler(app):

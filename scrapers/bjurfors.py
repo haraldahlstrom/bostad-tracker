@@ -18,6 +18,17 @@ from .base import BaseScraper
 
 logger = logging.getLogger(__name__)
 
+
+def _first_srcset_url(srcset: str) -> str:
+    """Return the first URL from a srcset string.
+    Splits by whitespace so Cloudflare CDN params (format=webp,width=640) don't break parsing."""
+    for token in srcset.split():
+        token = token.rstrip(',')
+        if token.startswith('http') or (token.startswith('/') and '.' in token.split('/')[-1]):
+            return token
+    return ''
+
+
 BASE = 'https://www.bjurfors.se'
 AREA_URL = f'{BASE}/sv/tillsalu/stockholm/stockholm/sodermalm-maria/'
 
@@ -87,21 +98,27 @@ class Bjurfors(BaseScraper):
             return None
 
         # Image — extract original path from Cloudflare cdn-cgi transform URL
-        # Pattern: /cdn-cgi/image/[params]/[actual-path]
+        # Cloudflare params contain commas (format=webp,width=640) so we cannot
+        # split srcset by comma — split by whitespace instead and pick first URL.
         image_url = ''
-        source = card.find('source', attrs={'data-srcset': True})
-        if source:
-            image_url = source.get('data-srcset', '').split(',')[0].strip().split(' ')[0]
-        if not image_url:
-            img = card.find('img', class_='c-object-card__image')
-            if img:
+        img = card.find('img', class_='c-object-card__image')
+        if img:
+            srcset = img.get('data-srcset') or img.get('srcset', '')
+            if srcset:
+                image_url = _first_srcset_url(srcset)
+            if not image_url:
                 image_url = img.get('data-src') or img.get('src', '')
+        if not image_url:
+            source = card.find('source', attrs={'data-srcset': True})
+            if source:
+                image_url = _first_srcset_url(source.get('data-srcset', ''))
         if image_url and not image_url.startswith('http'):
             image_url = BASE + image_url
         # Strip Cloudflare transformation: /cdn-cgi/image/[params]/[path] -> BASE/[path]
         cdn_match = re.search(r'/cdn-cgi/image/[^/]+/(.+)', image_url)
         if cdn_match:
-            image_url = BASE + '/' + cdn_match.group(1)
+            path = cdn_match.group(1)
+            image_url = path if path.startswith('http') else BASE + '/' + path
 
         slug = href.rstrip('/').split('/')[-1]
         return {

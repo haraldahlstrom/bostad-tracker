@@ -21,6 +21,8 @@ class Listing(db.Model):
     url = db.Column(db.String(2000))
     image_url = db.Column(db.String(2000))
     status = db.Column(db.String(50), default='active', index=True)
+    lat = db.Column(db.Float)
+    lng = db.Column(db.Float)
     first_seen = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     last_seen = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     active = db.Column(db.Boolean, default=True, index=True)
@@ -48,6 +50,8 @@ class Listing(db.Model):
             'url': self.url,
             'image_url': self.image_url,
             'status': self.status,
+            'lat': self.lat,
+            'lng': self.lng,
             'is_new': self.is_new(new_hours),
             'first_seen': self.first_seen.isoformat() if self.first_seen else None,
             'last_seen': self.last_seen.isoformat() if self.last_seen else None,

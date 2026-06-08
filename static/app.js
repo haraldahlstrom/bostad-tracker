@@ -1,10 +1,18 @@
 'use strict';
 
-const REFRESH_MS = 5 * 60 * 1000; // 5 min frontend poll
+const REFRESH_MS = 5 * 60 * 1000;
 let allListings = [];
 let refreshTimer = null;
 let lastSeenIds = new Set();
 let isFirstLoad = true;
+let currentView = 'grid'; // 'grid' | 'map'
+
+// ── Map state ─────────────────────────────────────────────────────────
+let map = null;
+let markers = [];
+// Mariatorget centre
+const MAP_CENTER = [59.3178, 18.0604];
+const MAP_ZOOM   = 15;
 
 // ── Fetch & Render ────────────────────────────────────────────────────
 
@@ -29,6 +37,98 @@ async function loadListings(showLoading = false) {
   renderListings(allListings);
   updateStatus();
   scheduleNextRefresh();
+}
+
+// ── Map ───────────────────────────────────────────────────────────────
+
+function initMap() {
+  if (map) return;
+  map = L.map('map', { zoomControl: true }).setView(MAP_CENTER, MAP_ZOOM);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+    maxZoom: 19,
+  }).addTo(map);
+}
+
+function renderMap(listings) {
+  initMap();
+  // Remove old markers
+  markers.forEach(m => m.remove());
+  markers = [];
+
+  const valid = listings.filter(l => l.lat && l.lng && l.lat !== 0 && l.lng !== 0);
+
+  for (const l of valid) {
+    const color = l.status === 'upcoming' ? '#f59e0b' : (l.is_new ? '#22c55e' : '#3b82f6');
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="map-pin ${l.status === 'upcoming' ? 'pin-upcoming' : ''} ${l.is_new ? 'pin-new' : ''}" style="background:${color}"></div>`,
+      iconSize: [14, 14],
+      iconAnchor: [7, 7],
+    });
+
+    const proxyImg = l.image_url
+      ? `/api/proxy?url=${encodeURIComponent(l.image_url)}`
+      : '';
+
+    const priceStr = l.price ? formatPrice(l.price) + ' kr' : 'Pris ej angivet';
+    const roomsStr = l.rooms != null ? formatRooms(l.rooms) + ' rok · ' : '';
+    const sizeStr  = l.size  != null ? l.size + ' kvm' : '';
+
+    const popup = L.popup({ maxWidth: 260, className: 'map-popup' }).setContent(`
+      <div class="map-popup-inner">
+        ${proxyImg ? `<a href="${l.url}" target="_blank" rel="noopener"><img src="${proxyImg}" alt="" loading="lazy" onerror="this.style.display='none'"></a>` : ''}
+        <div class="map-popup-body">
+          <div class="map-popup-badges">
+            ${l.is_new ? '<span class="badge badge-new">NY</span>' : ''}
+            ${l.status === 'upcoming' ? '<span class="badge badge-upcoming">KOMMANDE</span>' : ''}
+          </div>
+          <a class="map-popup-addr" href="${l.url}" target="_blank" rel="noopener">${l.address || l.title || ''}</a>
+          <div class="map-popup-area">${l.area || ''}</div>
+          <div class="map-popup-price">${priceStr}</div>
+          <div class="map-popup-details">${roomsStr}${sizeStr}</div>
+          <div class="map-popup-broker">${l.broker || ''}</div>
+        </div>
+      </div>
+    `);
+
+    const marker = L.marker([l.lat, l.lng], { icon }).bindPopup(popup).addTo(map);
+    markers.push(marker);
+  }
+
+  // Fit map to markers if we have any
+  if (valid.length > 0) {
+    const group = L.featureGroup(markers);
+    map.fitBounds(group.getBounds().pad(0.15), { maxZoom: 16 });
+  }
+
+  // Show count of unmapped listings
+  const unmapped = listings.length - valid.length;
+  document.getElementById('map-no-coords').textContent =
+    unmapped > 0 ? `${unmapped} objekt saknar koordinater (geocodas efter nästa skrapning)` : '';
+}
+
+function switchView(view) {
+  currentView = view;
+  const grid = document.getElementById('listings-grid');
+  const mapContainer = document.getElementById('map-container');
+  const btnGrid = document.getElementById('btn-view-grid');
+  const btnMap  = document.getElementById('btn-view-map');
+
+  if (view === 'map') {
+    grid.classList.add('hidden');
+    mapContainer.classList.remove('hidden');
+    btnGrid.classList.remove('active');
+    btnMap.classList.add('active');
+    renderMap(allListings);
+    // Leaflet needs a size recalculation after becoming visible
+    if (map) setTimeout(() => map.invalidateSize(), 10);
+  } else {
+    mapContainer.classList.add('hidden');
+    grid.classList.remove('hidden');
+    btnGrid.classList.add('active');
+    btnMap.classList.remove('active');
+  }
 }
 
 function renderListings(listings) {
@@ -77,6 +177,9 @@ function renderListings(listings) {
 
   grid.innerHTML = '';
   grid.appendChild(fragment);
+
+  // Update map if visible
+  if (currentView === 'map') renderMap(listings);
 }
 
 function populateCard(card, l) {
@@ -246,6 +349,8 @@ function formatDate(iso) {
 document.getElementById('btn-filter').addEventListener('click', () => loadListings(true));
 document.getElementById('btn-reset').addEventListener('click', resetFilters);
 document.getElementById('btn-scrape').addEventListener('click', triggerScrape);
+document.getElementById('btn-view-grid').addEventListener('click', () => switchView('grid'));
+document.getElementById('btn-view-map').addEventListener('click',  () => switchView('map'));
 
 // Also trigger on Enter in filter inputs
 document.querySelectorAll('.filter-group input, .filter-group select').forEach(el => {
