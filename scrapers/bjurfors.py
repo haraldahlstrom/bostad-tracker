@@ -86,7 +86,8 @@ class Bjurfors(BaseScraper):
         if any('såld' in t for t in tag_texts):
             return None
 
-        # Image from data-srcset on <source> or <img>
+        # Image — extract original path from Cloudflare cdn-cgi transform URL
+        # Pattern: /cdn-cgi/image/[params]/[actual-path]
         image_url = ''
         source = card.find('source', attrs={'data-srcset': True})
         if source:
@@ -97,6 +98,10 @@ class Bjurfors(BaseScraper):
                 image_url = img.get('data-src') or img.get('src', '')
         if image_url and not image_url.startswith('http'):
             image_url = BASE + image_url
+        # Strip Cloudflare transformation: /cdn-cgi/image/[params]/[path] -> BASE/[path]
+        cdn_match = re.search(r'/cdn-cgi/image/[^/]+/(.+)', image_url)
+        if cdn_match:
+            image_url = BASE + '/' + cdn_match.group(1)
 
         slug = href.rstrip('/').split('/')[-1]
         return {
